@@ -1,26 +1,30 @@
-/**
- * section: Tree
- * synopsis: Navigates a tree to print element names
- * purpose: Parse a file to a tree, use xmlDocGetRootElement() to
- *          get the root element, then walk the document and print
- *          all the element name in document order.
- * usage: tree1 filename_or_URL
- * test: tree1 test2.xml > tree1.tmp ; diff tree1.tmp tree1.res ; rm tree1.tmp
- * author: Dodji Seketeli
- * copy: see Copyright for the status of this software.
+/*
+ * OsmGL core.
+ *
+ * Copyright (C) 2010 <Johann Baudy> johann.baudy@gnu-log.net
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
+
 #include <iostream>
-#include <libxml/parser.h>
-#include <libxml/tree.h>
+#include <string>
 
 #include <osmgl/elements.hh>
 #include <osmgl/osmgl.hh>
 
-#ifdef __APPLE__
-#include <GLUT/glut.h>
-#else
-#include <GL/glut.h>         /* glut.h includes gl.h and glu.h*/
-#endif
+#include <GL/gl.h>
 
 #ifndef LIBXML_TREE_ENABLED
 #error "libxml2 must have tree enabled"
@@ -37,14 +41,7 @@ void CT_OSMGL::f_render(float in_f_lat_min,float in_f_lat_max,  float in_f_lon_m
 			c_coord_max._d_y, -1.0, 1.0);
 
 	glMatrixMode(GL_MODELVIEW);
-	/*
-	 glBegin(GL_POLYGON);
-	 glVertex2f(c_coord_min._d_x, c_coord_min._d_y);
-	 glVertex2f(c_coord_min._d_x, c_coord_max._d_y);
-	 glVertex2f(c_coord_max._d_x, c_coord_max._d_y);
-	 glVertex2f(c_coord_max._d_x, c_coord_min._d_y);
-	 glEnd();
-	 */
+	
 
 	for (ppc_way = _list_way.begin(); ppc_way != _list_way.end(); ppc_way++) {
 		CT_OSM_WAY* pc_way = (*ppc_way).second;
@@ -72,6 +69,28 @@ void CT_OSMGL::f_render(float in_f_lat_min,float in_f_lat_max,  float in_f_lon_m
 
 	}
 
+}
+
+void CT_OSMGL::f_parse_xml_rules(xmlNode * a_node) {
+	for (xmlNode * cur_node = a_node; cur_node; cur_node = cur_node->next) {
+		if (cur_node->type == XML_ELEMENT_NODE) {
+
+			string str_name = (const char*) cur_node->name;
+			printf("%s\n", str_name.c_str());
+			if (str_name == "Rule") {
+				/* Parse tags */
+				for (xmlNode * ps_child_node = cur_node->children; ps_child_node; ps_child_node
+						= ps_child_node->next) {
+					if (ps_child_node->type == XML_ELEMENT_NODE) {
+						string str_child_name =	(const char*) ps_child_node->name;
+						if (str_child_name == "Filter") {
+							printf("%s", ps_child_node->content);
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 void CT_OSMGL::f_parse_xml(xmlNode * a_node) {
@@ -163,12 +182,48 @@ void CT_OSMGL::f_parse_xml(xmlNode * a_node) {
 	}
 }
 
+
+void CT_OSMGL::f_open_rules(char const * in_str_filename) 
+{
+	xmlDoc *doc = NULL;
+	xmlNode *root_element = NULL;
+
+	/*parse the file and get the DOM */
+	doc = xmlReadFile(in_str_filename, NULL, 0);
+
+	if (doc == NULL) {
+		fprintf(stderr, "osmgl: could not parse file %s\n", in_str_filename);
+		throw EC_OSMGL_FAILURE;
+	}
+
+	/*Get the root element nodEC_OSM_FAILUREe */
+	root_element = xmlDocGetRootElement(doc);
+
+	f_parse_xml_rules(root_element);
+
+	/*free the document */
+	xmlFreeDoc(doc);
+
+	/*
+	 *Free the global variables that may
+	 *have been allocated by the parser.
+	 */
+	xmlCleanupParser();
+}
+
 /**
  * Simple example to parse a file called "file.xml",
  * walk down the DOM, and print the name of the
  * xml elements nodes.
  */
-CT_OSMGL::CT_OSMGL(string in_str_filename) {
+CT_OSMGL::CT_OSMGL(char const * in_str_filename) {
+	
+#ifdef FF_PARSERONLY
+	int yyparse(void);
+	yyparse();
+	exit(EXIT_FAILURE);
+#endif
+	
 	xmlDoc *doc = NULL;
 	xmlNode *root_element = NULL;
 
@@ -181,11 +236,14 @@ CT_OSMGL::CT_OSMGL(string in_str_filename) {
 	 */
 	LIBXML_TEST_VERSION
 
+
+	f_open_rules("./rules/mapnik/osm.xml");
+
 	/*parse the file and get the DOM */
-	doc = xmlReadFile(in_str_filename.c_str(), NULL, 0);
+	doc = xmlReadFile(_str_filename.c_str(), NULL, 0);
 
 	if (doc == NULL) {
-		printf("error: could not parse file %s\n", in_str_filename.c_str());
+		fprintf(stderr, "osmgl: could not parse file %s\n", _str_filename.c_str());
 		throw EC_OSMGL_FAILURE;
 	}
 
@@ -209,172 +267,4 @@ class CT_PARSER {
 	int i_type;
 	void * data;
 };
-#if 0
-bool
-CT_OSMGL::m_f_match(std::string in_str_src) {
-
-	string str_tmp;
-
-	str_tmp
-}
-#endif
-#if 0
-bool
-CT_OSMGL::m_f_match_or(std::string in_str_string) {
-	if(in_str_string.size() < 4) {
-		throw EC_OSMGL_BYPASS;
-	}
-
-	if(in_str_string[0] != '(') {
-		throw EC_OSMGL_BYPASS;
-	}
-
-	if(in_str_string[in_str_string.size()-1] != ')') {
-		throw EC_OSMGL_BYPASS;
-	}
-
-	/* Match exp inside () */
-	try {
-		return m_f_match_exp(in_str_string.substr(1,in_str_string.size()-2));
-	} catch (ec) {
-		if(ec == EC_OSMGL_FAILURE) {
-			throw ec;
-		}
-	}
-
-	throw EC_OSMGL_BYPASS;
-}
-
-bool
-CT_OSMGL::m_f_match_pp(std::string in_str_string) {
-	if(in_str_string.size() < 4) {
-		throw EC_OSMGL_BYPASS;
-	}
-
-	if(in_str_string[0] != '(') {
-		throw EC_OSMGL_BYPASS;
-	}
-
-	if(in_str_string[in_str_string.size()-1] != ')') {
-		throw EC_OSMGL_BYPASS;
-	}
-
-	/* Match exp inside () */
-	try {
-		return m_f_match_exp(in_str_string.substr(1,in_str_string.size()-2));
-	} catch (ec) {
-		if(ec == EC_OSMGL_FAILURE) {
-			throw ec;
-		}
-	}
-
-	throw EC_OSMGL_BYPASS;
-}
-
-bool
-CT_OSMGL::m_f_match_exp(std::string in_str_rule) {
-
-	/* Match (x) */
-	try {
-		return m_f_match_pp(in_str_rule);
-	} catch (ec) {
-		if(ec == EC_OSMGL_FAILURE) {
-			throw ec;
-		}
-	}
-
-	/* Match xxx or xxx */
-	try {
-		return m_f_match_or(in_str_rule);
-	} catch (ec) {
-		if(ec == EC_OSMGL_FAILURE) {
-			throw ec;
-		}
-	}
-
-	/* Match xxx and xxx */
-	try {
-		return m_f_match_and(in_str_rule);
-	} catch (ec) {
-		if(ec == EC_OSMGL_FAILURE) {
-			throw ec;
-		}
-	}
-
-	/* Match xxx */
-	try {
-		return m_f_match_key_value(in_str_rule);
-	} catch (ec) {
-		if(ec == EC_OSMGL_FAILURE) {
-			throw ec;
-		}
-	}
-
-	throw EC_OSMGL_BYPASS;
-}
-#endif
-CT_OSMGL * gpc_osm = NULL;
-void display(void)
-
-{
-	/* clear window */
-
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	/* draw unit square polygon */
-	gpc_osm->f_render(43.0508269, 43.2632063, 5.465698199999999,
-			5.847473099999999);
-	/*
-	 glBegin(GL_POLYGON);
-	 glVertex2f(-0.5, -0.5);
-	 glVertex2f(-0.5, 0.5);
-	 glVertex2f(0.5, 0.5);
-	 glVertex2f(0.5, -0.5);
-	 glEnd();
-	 */
-	/* flush GL buffers */
-
-	glFlush();
-
-}
-
-void init() {
-
-	/* set clear color to black */
-
-	/* 	glClearColor (0.0, 0.0, 0.0, 0.0); */
-	/* set fill  color to white */
-
-	/* 	glColor3f(1.0, 1.0, 1.0); */
-
-	/* set up standard orthogonal view with clipping */
-	/* box as cube of side 2 centered at origin */
-	/* This is default view and these statement could be removed */
-
-	/* */
-
-}
-
-int main(int argc, char** argv) {
-
-	/* Initialize mode and open a window in upper left corner of screen */
-	/* Window title is name of program (arg[0]) */
-	try {
-		gpc_osm = new CT_OSMGL(argv[1]);
-	} catch (int ec) {
-		cerr << "A failure as occured during init";
-		exit(-1);
-	}
-
-	/* You must call glutInit before any other OpenGL/GLUT calls */
-	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-	glutInitWindowSize(500, 500);
-	glutInitWindowPosition(0, 0);
-	glutCreateWindow("simple");
-	glutDisplayFunc(display);
-	init();
-	glutMainLoop();
-
-}
 

@@ -1,41 +1,47 @@
+/*
+ * OsmGL rules scanner.
+ *
+ * Copyright (C) 2010 <Johann Baudy> johann.baudy@gnu-log.net
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+ */
 %{
+#include <string>
 #include "rules_bison.h"
 
-#define YY_DECL                                        \
-       yy::parser::token_type                         \
-       yylex (yy::parser::semantic_type* pyylval,      \
-              yy::parser::location_type* pyylloc)
-
-YY_DECL;
-#define TOKEN yy::parser::token
-#define yyterminate() return TOKEN::END
-#define D(x) printf(x " ")
-int cur_line = 1;
-
-extern "C" int yywrap(void)
-{
-   printf("end of file");
-   return 1;
-}
-
+//#define yylval calc_lval
+#define D(x)
 %}
+%option noyywrap
 
 whitespaces    [\t\r ]+
 
 %%
-"or"                             { D("OR"); return TOKEN::OR; }
-"and"                             { D("AND"); return TOKEN::AND; }
-"not"                             { D("NOT"); return TOKEN::NOT; }
+"or"                             { D("OR"); return OR; }
+"and"                             { D("AND"); return AND; }
+"not"                             { D("NOT"); return NOT; }
 
-[a-zA-Z_][a-zA-Z0-9_]*            { D("LITERAL"); pyylval->u_string = new std::string (yytext); return TOKEN::LITERAL; }
+[a-zA-Z_][a-zA-Z0-9_]*            { D("LITERAL"); yylval.u_string = new std::string (yytext); return LITERAL; }
 
-"("                             { D("LRBRAKET"); return TOKEN::LRBRAKET; }
-")"                             { D("RRBRAKET"); return TOKEN::RRBRAKET; }
-"["                             { D("LSBRAKET"); return TOKEN::LSBRAKET; }
-"]"                             { D("RSBRAKET"); return TOKEN::RSBRAKET; }
-"="                             { D("EQUAL"); return TOKEN::EQUAL; }
-"'"                             { D("QUOTE"); return TOKEN::QUOTE; }
-"\n"                            { D("EOL"); return TOKEN::EOL; }
+"("                             { D("LRBRAKET"); return LRBRAKET; }
+")"                             { D("RRBRAKET"); return RRBRAKET; }
+"["                             { D("LSBRAKET"); return LSBRAKET; }
+"]"                             { D("RSBRAKET"); return RSBRAKET; }
+"="                             { D("EQUAL"); return EQUAL; }
+"'"                             { D("QUOTE"); return QUOTE; }
+"\n"                            { D("EOL"); return EOL; }
 
 {whitespaces}  /* eat spaces */
 
@@ -44,8 +50,6 @@ whitespaces    [\t\r ]+
 #ifdef FF_LEX_ONLY
 main()
 {
-yy::parser::semantic_type yylval;
-yy::parser::location_type yylloc;
-  while(yylex(&yylval, &yylloc));
+
 }
 #endif

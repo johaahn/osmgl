@@ -1,5 +1,5 @@
 bin_PROGRAMS = example
 example_SOURCES = example.cc
-example_CFLAGS = -I@top_srcdir@/include ${GLUT_CFLAGS} ${GL_CFLAGS}
-example_LDADD = @top_builddir@/src/libnvstusb.la ${GLUT_LIBS} ${GL_LIBS} -lglut
+example_CXXFLAGS = -I@top_srcdir@/include ${XML_CFLAGS} ${GLUT_CFLAGS} ${GL_CFLAGS}
+example_LDADD = @top_builddir@/src/libosmgl.la ${XML_LIBS} ${GLUT_LIBS} ${GL_LIBS} 
 

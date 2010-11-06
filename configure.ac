@@ -16,6 +16,7 @@ AC_PROG_LIBTOOL
 PKG_CHECK_MODULES([GL], [gl >= 7.7.0]) 
 PKG_CHECK_MODULES([XML], [libxml-2.0 >= 2.7.0]) 
 AC_CHECK_LIB(glut, glutMainLoop)
+AC_CHECK_LIB(fl, yywrap)
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdint.h])
@@ -34,6 +35,7 @@ AC_ARG_ENABLE(debug, [  --enable-debug=[no/yes] turn on debugging
                        [default=$debug_default]],, enable_debug=$debug_default)
 if test "x$enable_debug" = "xyes"; then
          CFLAGS="$CFLAGS -g -DOSMGL_DEBUG"
+	 CXXFLAGS="$CXXFLAGS -g -DOSMGL_DEBUG"
 AC_MSG_RESULT(yes)
 else
 AC_MSG_RESULT(no)

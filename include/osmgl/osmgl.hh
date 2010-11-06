@@ -11,21 +11,27 @@
 #define EC_OSMGL_BYPASS -2
 #define EC_OSMGL_FAILURE -1
 #define EC_OSMGL_SUCCESS 0
-
+#include <string>
+#include <libxml/parser.h>
+#include <libxml/tree.h>
 #include <osmgl/elements.hh>
 
+
 class CT_OSMGL {
-	string _str_filename;
+	std::string _str_filename;
 
 	/* OSM nodes */
-	map<uint32_t, CT_OSM_NODE*> _list_node;
+	std::map<uint32_t, CT_OSM_NODE*> _list_node;
 
 	/* OSM Ways */
-	map<uint32_t, CT_OSM_WAY*> _list_way;
+	std::map<uint32_t, CT_OSM_WAY*> _list_way;
 public:
-	CT_OSMGL(string in_str_filename);
-	void f_parse_xml(xmlNode * a_node);
+	CT_OSMGL(char const *);
 	void f_render(float in_f_lat_min, float in_f_lon_min, float in_f_lat_max, float in_f_lon_max);
+	void f_parse_xml(xmlNode * a_node);
+	void f_parse_xml_rules(xmlNode * a_node);
+
+	void f_open_rules(char const * in_str_filename);
 };
 
 #endif /* OSMGL_HH_ */

@@ -1,20 +1,35 @@
-%skeleton "lalr1.cc"
-%require "2.3"
-%defines
-
+/*
+ * OsmGL rules parser.
+ *
+ * Copyright (C) 2010 <Johann Baudy> johann.baudy@gnu-log.net
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3.0 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+ */
 %{
-#include "rules_bison.h"
+
 
 #include <iostream>
 #include <stdio.h>
 #include <string>
 using namespace std;
-std::string * pstr_reduce = NULL;
 
- # define YY_DECL                                        \
-       yy::parser::token_type                         \
-       yylex (yy::parser::semantic_type* yylval,      \
-              yy::parser::location_type* yylloc)
+#include "rules_bison.h"
+
+int yyerror(char* errstr);
+int yylex (void);
+
 %}
 
 
@@ -29,9 +44,6 @@ std::string * pstr_reduce = NULL;
     bool u_int;
 }
 
-%{
-YY_DECL;
-%}
 %token <u_string> LITERAL
 %token LRBRAKET
 %token RRBRAKET
@@ -79,22 +91,8 @@ value: exp EOL
     { printf("value:%d\n", $1); }
 %%
 
-void yy::parser::error (const yy::location &loc, const std::string &s) {
-	fprintf (stderr, "begin line:%d column:%d\n", loc.begin.line, loc.begin.column);
-	fprintf (stderr, "end line:%d column:%d\n", loc.end.line, loc.end.column);
-	if(pstr_reduce) {
-	   fprintf (stderr, "near %s: %s\n",pstr_reduce->c_str(), s.c_str());
-	}
-	exit(1);
+int yyerror(char* errstr) {
+	printf("Error: %s\n", errstr);
+	return EXIT_FAILURE;
 }
-
-int main () {
-	yy::parser * parser = new yy::parser();
-	int i = parser->parse();
-	if(i) {
-		cout << "Wrong syntax" << endl;
-	}
-	return i;
-}
-
 
