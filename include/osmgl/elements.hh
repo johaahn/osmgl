@@ -18,9 +18,10 @@ using namespace std;
 class CT_OSM_COORD {
 public:
 		double _d_lat;
-		double _d_x;
 		double _d_lon;
+		double _d_x;
 		double _d_y;
+		double _d_z;
 
 		CT_OSM_COORD(double in_d_lat, double in_d_long) {
 			_d_lat = in_d_lat;

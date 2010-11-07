@@ -25,15 +25,56 @@
 #include <osmgl/osmgl.hh>
 
 #include <GL/gl.h>
+#include <tess.hh>
 
 #ifndef LIBXML_TREE_ENABLED
 #error "libxml2 must have tree enabled"
 #endif
-void CT_OSMGL::f_render(float in_f_lat_min,float in_f_lat_max,  float in_f_lon_min,
-		 float in_f_lon_max) {
+//using namespace std;
+
+
+void CT_OSMGL::m_f_glColor(const char * in_pc_color) {
+	std::string str_color = in_pc_color;
+	if (str_color[0] == '#') {
+		str_color[0] = ' ';
+		uint32_t i_tmp = strtol(str_color.c_str(), NULL, 16);
+
+		char i_blue = i_tmp & 0xff;
+		char i_green = (i_tmp >> 8) & 0xff;
+		char i_red = (i_tmp >> 16) & 0xff;
+
+		glColor4ub(i_red, i_green, i_blue, 255);
+
+	} else {
+		GLubyte red[] = { 255, 0, 0, 255 };
+		GLubyte green[] = { 0, 255, 0, 255 };
+		GLubyte blue[] = { 0, 0, 255, 255 };
+		GLubyte white[] = { 255, 255, 255, 255 };
+		GLubyte yellow[] = { 0, 255, 255, 255 };
+		GLubyte black[] = { 0, 0, 0, 255 };
+		GLubyte orange[] = { 255, 255, 0, 255 };
+		GLubyte purple[] = { 255, 0, 255, 255 };
+		GLubyte grey[] = { 50, 50, 50, 255 };
+
+		if (str_color == "purple") {
+			glColor4ubv(purple);
+		} else if (str_color == "grey") {
+			glColor4ubv(grey);
+		} else if (str_color == "green") {
+			glColor4ubv(green);
+		} else {
+			glColor4f(1.0, 1.0, 1.0, 1.0);
+		}
+	}
+}
+
+void CT_OSMGL::f_render(float in_f_lat_min, float in_f_lat_max,
+		float in_f_lon_min, float in_f_lon_max) {
 	CT_OSM_COORD c_coord_min(in_f_lat_min, in_f_lon_min);
 	CT_OSM_COORD c_coord_max(in_f_lat_max, in_f_lon_max);
 	map<uint32_t, CT_OSM_WAY*>::iterator ppc_way;
+	/* Tesselation class */
+	CT_TESSELLATION c_tess;
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -41,31 +82,73 @@ void CT_OSMGL::f_render(float in_f_lat_min,float in_f_lat_max,  float in_f_lon_m
 			c_coord_max._d_y, -1.0, 1.0);
 
 	glMatrixMode(GL_MODELVIEW);
-	
 
 	for (ppc_way = _list_way.begin(); ppc_way != _list_way.end(); ppc_way++) {
 		CT_OSM_WAY* pc_way = (*ppc_way).second;
-		if(pc_way->f_get_tag("natural") == "coastline") {
-			/* Found a coast */
-			//CT_OSM_WAY* pc_coast =
-		}
-	}
 
-	for (ppc_way = _list_way.begin(); ppc_way != _list_way.end(); ppc_way++) {
-		CT_OSM_WAY* pc_way = (*ppc_way).second;
-		list<CT_OSM_NODE*>::iterator ppc_node;
-		//	glColor3f(0.0,0.0,0.0);
-		glBegin(GL_LINE_STRIP);
-		for (ppc_node = pc_way->f_get_node_list()->begin(); ppc_node
-				!= pc_way->f_get_node_list()->end(); ppc_node++) {
-			CT_OSM_NODE* pc_node = *ppc_node;
-			/*printf("%f, %f (%f,%f) (%f,%f)\n", pc_node->c_coord._d_x,
-					pc_node->c_coord._d_y, c_coord_min._d_x, c_coord_max._d_x,
-					c_coord_min._d_y, c_coord_max._d_y);*/
-			glVertex2d(pc_node->c_coord._d_x, pc_node->c_coord._d_y);
+		enum ET_DRAW_TYPE {
+			E_DRAW_TYPE_LINE, E_DRAW_TYPE_POLYGON, E_DRAW_TYPE_NONE,
+		};
+		int e_type = E_DRAW_TYPE_LINE;
+		short i_line_pattern = 0xFFFF;
+		char const * pc_color = "#a0a0a0";
+
+		if (pc_way->f_get_tag("natural") == "coastline") {
+			e_type = E_DRAW_TYPE_LINE;
+			i_line_pattern = 0xCCCC;
+			pc_color = "purple";
+
+		} else if (pc_way->f_get_tag("natural") == "scrub") {
+			e_type = E_DRAW_TYPE_POLYGON;
+			pc_color = "#8dc56c";
+		} else if (pc_way->f_get_tag("landuse") == "forest") {
+			e_type = E_DRAW_TYPE_POLYGON;
+			pc_color = "green";
+		} else if (pc_way->f_get_tag("landuse") == "quarry") {
+			e_type = E_DRAW_TYPE_POLYGON;
+			pc_color = "grey";
+		} else if (pc_way->f_get_tag("boundary") != "") {
+			e_type = E_DRAW_TYPE_NONE;
+		}
+
+		switch (e_type) {
+		case E_DRAW_TYPE_LINE:
+			m_f_glColor(pc_color);
+			glEnable(GL_LINE_STIPPLE);
+			glLineStipple(1, i_line_pattern);
+
+			glBegin(GL_LINE_STRIP);
+			for (list<CT_OSM_NODE*>::iterator ppc_node =
+					pc_way->f_get_node_list()->begin(); ppc_node
+					!= pc_way->f_get_node_list()->end(); ppc_node++) {
+				CT_OSM_NODE* pc_node = *ppc_node;
+				glVertex2d(pc_node->c_coord._d_x, pc_node->c_coord._d_y);
+			}
+			glEnd();
+			break;
+		case E_DRAW_TYPE_POLYGON: {
+			m_f_glColor(pc_color);
+
+			CT_OSM_NODE* pc_node_first = *(pc_way->f_get_node_list()->begin());
+
+			c_tess.m_f_glBegin();
+			for (list<CT_OSM_NODE*>::iterator ppc_node =
+					pc_way->f_get_node_list()->begin(); ppc_node
+					!= pc_way->f_get_node_list()->end(); ppc_node++) {
+				CT_OSM_NODE* pc_node = *ppc_node;
+				if (pc_node_first->c_coord._d_x != pc_node->c_coord._d_x) {
+					c_tess.m_f_vertex2dv(&(pc_node->c_coord._d_x));
+				}
+			}
+			c_tess.m_f_glEnd();
 
 		}
-		glEnd();
+
+			break;
+
+		default:
+			break;
+		}
 
 	}
 
@@ -82,7 +165,8 @@ void CT_OSMGL::f_parse_xml_rules(xmlNode * a_node) {
 				for (xmlNode * ps_child_node = cur_node->children; ps_child_node; ps_child_node
 						= ps_child_node->next) {
 					if (ps_child_node->type == XML_ELEMENT_NODE) {
-						string str_child_name =	(const char*) ps_child_node->name;
+						string str_child_name =
+								(const char*) ps_child_node->name;
 						if (str_child_name == "Filter") {
 							printf("%s", ps_child_node->content);
 						}
@@ -182,9 +266,7 @@ void CT_OSMGL::f_parse_xml(xmlNode * a_node) {
 	}
 }
 
-
-void CT_OSMGL::f_open_rules(char const * in_str_filename) 
-{
+void CT_OSMGL::f_open_rules(char const * in_str_filename) {
 	xmlDoc *doc = NULL;
 	xmlNode *root_element = NULL;
 
@@ -217,13 +299,13 @@ void CT_OSMGL::f_open_rules(char const * in_str_filename)
  * xml elements nodes.
  */
 CT_OSMGL::CT_OSMGL(char const * in_str_filename) {
-	
+
 #ifdef FF_PARSERONLY
 	int yyparse(void);
 	yyparse();
 	exit(EXIT_FAILURE);
 #endif
-	
+
 	xmlDoc *doc = NULL;
 	xmlNode *root_element = NULL;
 
@@ -236,14 +318,14 @@ CT_OSMGL::CT_OSMGL(char const * in_str_filename) {
 	 */
 	LIBXML_TEST_VERSION
 
-
-	f_open_rules("./rules/mapnik/osm.xml");
+	//f_open_rules("./rules/mapnik/osm.xml");
 
 	/*parse the file and get the DOM */
 	doc = xmlReadFile(_str_filename.c_str(), NULL, 0);
 
 	if (doc == NULL) {
-		fprintf(stderr, "osmgl: could not parse file %s\n", _str_filename.c_str());
+		fprintf(stderr, "osmgl: could not parse file %s\n",
+				_str_filename.c_str());
 		throw EC_OSMGL_FAILURE;
 	}
 

@@ -32,6 +32,9 @@ public:
 	void f_parse_xml_rules(xmlNode * a_node);
 
 	void f_open_rules(char const * in_str_filename);
+
+private:
+	void m_f_glColor(const char * in_pc_color);
 };
 
 #endif /* OSMGL_HH_ */

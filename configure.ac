@@ -14,6 +14,7 @@ AC_PROG_LIBTOOL
 
 # Checks for libraries.
 PKG_CHECK_MODULES([GL], [gl >= 7.7.0]) 
+PKG_CHECK_MODULES([GLU], [glu >= 7.7.0]) 
 PKG_CHECK_MODULES([XML], [libxml-2.0 >= 2.7.0]) 
 AC_CHECK_LIB(glut, glutMainLoop)
 AC_CHECK_LIB(fl, yywrap)
