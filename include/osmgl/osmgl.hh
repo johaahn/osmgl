@@ -20,6 +20,11 @@
 class CT_OSMGL {
 	std::string _str_filename;
 
+	float _f_minlat;
+	float _f_minlon;
+	float _f_maxlat;
+	float _f_maxlon;
+
 	/* OSM nodes */
 	std::map<uint32_t, CT_OSM_NODE*> _list_node;
 
@@ -27,6 +32,7 @@ class CT_OSMGL {
 	std::map<uint32_t, CT_OSM_WAY*> _list_way;
 public:
 	CT_OSMGL(char const *);
+	void f_render(void);
 	void f_render(float in_f_lat_min, float in_f_lon_min, float in_f_lat_max, float in_f_lon_max);
 	void f_parse_xml(xmlNode * a_node);
 	void f_parse_xml_rules(xmlNode * a_node);

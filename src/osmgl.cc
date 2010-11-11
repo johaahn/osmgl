@@ -62,26 +62,41 @@ void CT_OSMGL::m_f_glColor(const char * in_pc_color) {
 			glColor4ubv(grey);
 		} else if (str_color == "green") {
 			glColor4ubv(green);
+		} else if (str_color == "white") {
+			glColor4ubv(white);
 		} else {
 			glColor4f(1.0, 1.0, 1.0, 1.0);
 		}
 	}
+}
+void CT_OSMGL::f_render(void) {
+	f_render(_f_minlat, _f_maxlat, _f_minlon, _f_maxlon);
 }
 
 void CT_OSMGL::f_render(float in_f_lat_min, float in_f_lat_max,
 		float in_f_lon_min, float in_f_lon_max) {
 	CT_OSM_COORD c_coord_min(in_f_lat_min, in_f_lon_min);
 	CT_OSM_COORD c_coord_max(in_f_lat_max, in_f_lon_max);
+
+
+
 	map<uint32_t, CT_OSM_WAY*>::iterator ppc_way;
 	/* Tesselation class */
 	CT_TESSELLATION c_tess;
+	c_tess.m_f_set_limits(c_coord_min._d_x, c_coord_max._d_x, c_coord_min._d_y, c_coord_max._d_y);
 
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(c_coord_min._d_x, c_coord_max._d_x, c_coord_min._d_y,
-			c_coord_max._d_y, -1.0, 1.0);
 
-	glMatrixMode(GL_MODELVIEW);
+
+	glDisable(GL_LINE_STIPPLE);
+	m_f_glColor("white");
+	glBegin(GL_LINE_STRIP);
+	glVertex2f(c_coord_min._d_x, c_coord_min._d_y);
+	glVertex2f(c_coord_min._d_x, c_coord_max._d_y);
+	glVertex2f(c_coord_max._d_x, c_coord_max._d_y);
+	glVertex2f(c_coord_max._d_x, c_coord_min._d_y);
+	glVertex2f(c_coord_min._d_x, c_coord_min._d_y);
+	glEnd();
+
 
 	for (ppc_way = _list_way.begin(); ppc_way != _list_way.end(); ppc_way++) {
 		CT_OSM_WAY* pc_way = (*ppc_way).second;
@@ -116,7 +131,7 @@ void CT_OSMGL::f_render(float in_f_lat_min, float in_f_lat_max,
 			m_f_glColor(pc_color);
 			glEnable(GL_LINE_STIPPLE);
 			glLineStipple(1, i_line_pattern);
-
+#if 0
 			glBegin(GL_LINE_STRIP);
 			for (list<CT_OSM_NODE*>::iterator ppc_node =
 					pc_way->f_get_node_list()->begin(); ppc_node
@@ -125,12 +140,52 @@ void CT_OSMGL::f_render(float in_f_lat_min, float in_f_lat_max,
 				glVertex2d(pc_node->c_coord._d_x, pc_node->c_coord._d_y);
 			}
 			glEnd();
+#else
+			{
+				bool b_line_started = false;
+				CT_OSM_NODE* pc_last = NULL;
+				for (list<CT_OSM_NODE*>::iterator ppc_node =
+						pc_way->f_get_node_list()->begin(); ppc_node
+						!= pc_way->f_get_node_list()->end(); ppc_node++) {
+					CT_OSM_NODE* pc_node = *ppc_node;
+
+					if((pc_node->c_coord._d_lat < in_f_lat_max)
+							&& (pc_node->c_coord._d_lat > in_f_lat_min)
+							&& (pc_node->c_coord._d_lon < in_f_lon_max)
+							&& (pc_node->c_coord._d_lon > in_f_lon_min)) {
+						if(!b_line_started) {
+							glBegin(GL_LINE_STRIP);
+							if(pc_last) {
+								glVertex2d(pc_last->c_coord._d_x, pc_last->c_coord._d_y);
+							}
+							b_line_started = true;
+						}
+
+						glVertex2d(pc_node->c_coord._d_x, pc_node->c_coord._d_y);
+					} else {
+						if(b_line_started) {
+							glVertex2d(pc_node->c_coord._d_x, pc_node->c_coord._d_y);
+							glEnd();
+							b_line_started = false;
+						} else {
+							pc_last = pc_node;
+						}
+					}
+
+				}
+				if(b_line_started) {
+					glEnd();
+				}
+			}
+#endif
+
 			break;
 		case E_DRAW_TYPE_POLYGON: {
 			m_f_glColor(pc_color);
 
 			CT_OSM_NODE* pc_node_first = *(pc_way->f_get_node_list()->begin());
 
+			//c_tess.m_f_glBegin();
 			c_tess.m_f_glBegin();
 			for (list<CT_OSM_NODE*>::iterator ppc_node =
 					pc_way->f_get_node_list()->begin(); ppc_node
@@ -258,6 +313,21 @@ void CT_OSMGL::f_parse_xml(xmlNode * a_node) {
 						}
 					}
 				}
+			} else if (str_name == "bounds") {
+				//  <bounds minlat="43.1159000" minlon="5.5564000" maxlat="43.2120000" maxlon="5.6822000"/>
+				char const * str_tmp;
+				str_tmp = (char const *) xmlGetProp(cur_node,
+						(const xmlChar*) "minlat");
+				_f_minlat = atof(str_tmp);
+				str_tmp = (char const *) xmlGetProp(cur_node,
+						(const xmlChar*) "minlon");
+				_f_minlon = atof(str_tmp);
+				str_tmp = (char const *) xmlGetProp(cur_node,
+						(const xmlChar*) "maxlat");
+				_f_maxlat = atof(str_tmp);
+				str_tmp = (char const *) xmlGetProp(cur_node,
+						(const xmlChar*) "maxlon");
+				_f_maxlon = atof(str_tmp);
 
 			} else {
 				f_parse_xml(cur_node->children);

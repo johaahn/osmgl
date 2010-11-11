@@ -40,12 +40,33 @@ CT_OSMGL * gpc_osm = NULL;
 void display(void)
 
 {
+
+
+	/* draw unit square polygon */
+	//gpc_osm->f_render();
+	//  <bounds minlat="43.1159000" minlon="5.5564000" maxlat="43.2120000" maxlon="5.6822000"/>
+	//
+	float f_lon_min = 5.465698199999999;
+	float f_lon_max = 5.847473099999999;
+	float f_lat_min = 43.0508269;
+	float f_lat_max = 43.2632063;
+
+
+	CT_OSM_COORD c_coord_min(f_lat_min, f_lon_min);
+	CT_OSM_COORD c_coord_max(f_lat_max, f_lon_max);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(c_coord_min._d_x, c_coord_max._d_x, c_coord_min._d_y,
+			c_coord_max._d_y, -1.0, 1.0);
+
+	glMatrixMode(GL_MODELVIEW);
 	/* clear window */
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	/* draw unit square polygon */
-	gpc_osm->f_render(43.0508269, 43.2632063, 5.465698199999999,
-			5.847473099999999);
+	gpc_osm->f_render();
+	//gpc_osm->f_render(43.150, 43.200, 5.56,5.67);
+	//gpc_osm->f_render(43.0508269, 43.2632063, 5.465698199999999,5.847473099999999);
 
 	/* flush GL buffers */
 	glFlush();

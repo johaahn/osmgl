@@ -28,6 +28,7 @@ AC_TYPE_UINT32_T
 
 # Checks for library functions.
 CFLAGS="-Werror -std=gnu99"
+CXXFLAGS="-Werror -std=gnu++0x"
 
 AC_MSG_CHECKING(whether to enable debugging)
 debug_default="yes"

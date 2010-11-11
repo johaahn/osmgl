@@ -23,11 +23,11 @@
 #include <iostream>
 #include <stdio.h>
 #include <string>
-using namespace std;
+//using namespace std;
 
 #include "rules_bison.h"
 
-int yyerror(char* errstr);
+int yyerror(const char* errstr);
 int yylex (void);
 
 %}
@@ -70,8 +70,8 @@ int yylex (void);
 
 tag: LSBRAKET LITERAL RSBRAKET EQUAL QUOTE LITERAL QUOTE
     { 
-        string str_key = *$2;
-        string str_value = *$6;
+        std::string str_key = *$2;
+        std::string str_value = *$6;
         printf("key:%s value:%s\n", str_key.c_str(), str_value.c_str());
         $$ = true;
     }
@@ -91,8 +91,8 @@ value: exp EOL
     { printf("value:%d\n", $1); }
 %%
 
-int yyerror(char* errstr) {
-	printf("Error: %s\n", errstr);
+int yyerror(const char* errstr) {
+	printf("Error: %s\n",  errstr);
 	return EXIT_FAILURE;
 }
 
